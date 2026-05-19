@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quill — Blog CMS</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafaf8;
+  --surface: #ffffff;
+  --sidebar-bg: #1c1917;
+  --sidebar-active: #292524;
+  --ink: #1c1917;
+  --ink2: #78716c;
+  --ink3: #a8a29e;
+  --accent: #dc6f2e;
+  --accent-lt: #fff3eb;
+  --border: #e7e5e4;
+  --tag-bg: #f5f5f4;
+  --code-bg: #292524;
+  --green: #16a34a;
+  --blue: #2563eb;
+  --shadow: 0 1px 4px rgba(28,25,23,0.08);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+
+.app { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar { background: var(--sidebar-bg); color: #e7e5e4; display: flex; flex-direction: column; padding: 0; }
+.sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid #292524; display: flex; align-items: center; gap: 10px; }
+.quill-icon { font-size: 22px; }
+.sidebar-logo-text { font-family: 'Lora', serif; font-size: 18px; font-weight: 600; letter-spacing: -0.02em; }
+.sidebar-logo-text span { color: var(--accent); }
+
+.sidebar-section-label { padding: 16px 20px 6px; font-size: 10px; font-weight: 600; color: #57534e; text-transform: uppercase; letter-spacing: 0.1em; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 20px; cursor: pointer; font-size: 13px; color: #a8a29e; transition: all 0.15s; border-left: 2px solid transparent; }
+.nav-item:hover { background: var(--sidebar-active); color: #e7e5e4; }
+.nav-item.active { background: var(--sidebar-active); color: #fff; border-left-color: var(--accent); font-weight: 500; }
+.nav-badge { margin-left: auto; background: var(--accent); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 8px; }
+
+.sidebar-footer { margin-top: auto; padding: 16px 20px; border-top: 1px solid #292524; display: flex; align-items: center; gap: 10px; }
+.avatar-sm { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+.sidebar-user { font-size: 12px; color: #a8a29e; }
+.sidebar-user strong { display: block; color: #e7e5e4; font-size: 13px; }
+
+/* MAIN */
+.main { display: flex; flex-direction: column; }
+
+/* TOP BAR */
+.topbar { padding: 16px 28px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); position: sticky; top: 0; z-index: 50; }
+.view-title { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; }
+.btn { padding: 8px 18px; border-radius: 8px; border: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.btn-ghost { background: transparent; color: var(--ink2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--bg); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: #c0551a; }
+.search-input { padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; outline: none; width: 200px; background: var(--bg); transition: border-color 0.15s; }
+.search-input:focus { border-color: var(--accent); }
+
+/* STATS */
+.stats-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); }
+.stat-tab { flex: 1; padding: 14px 20px; border-right: 1px solid var(--border); cursor: pointer; transition: background 0.15s; }
+.stat-tab:last-child { border-right: none; }
+.stat-tab:hover { background: var(--bg); }
+.stat-num { font-size: 24px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; }
+.stat-label { font-size: 11px; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+.stat-tab.active .stat-num { color: var(--accent); }
+
+/* POSTS GRID */
+.posts-area { padding: 24px 28px; flex: 1; }
+.posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 20px; }
+
+.post-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: all 0.2s; cursor: pointer;
+  box-shadow: var(--shadow);
+}
+.post-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(28,25,23,0.1); border-color: var(--accent); }
+
+.post-cover { height: 160px; display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative; overflow: hidden; }
+.post-cover-overlay { position: absolute; inset: 0; }
+.cover-status { position: absolute; top: 12px; right: 12px; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.status-published { background: rgba(22,163,74,0.15); color: var(--green); border: 1px solid rgba(22,163,74,0.3); }
+.status-draft { background: rgba(120,113,108,0.15); color: var(--ink2); border: 1px solid var(--border); }
+
+.post-body { padding: 18px 20px; }
+.post-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.post-tag { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px; background: var(--tag-bg); color: var(--ink2); text-transform: uppercase; letter-spacing: 0.04em; }
+.post-title { font-family: 'Lora', serif; font-size: 17px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; color: var(--ink); }
+.post-excerpt { font-size: 13px; line-height: 1.6; color: var(--ink2); margin-bottom: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.post-meta { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--ink3); }
+.post-meta-left { display: flex; align-items: center; gap: 6px; }
+.post-stats { display: flex; gap: 12px; }
+.post-stat { display: flex; align-items: center; gap: 4px; }
+
+/* EDITOR VIEW */
+.editor-view { display: none; flex: 1; flex-direction: column; }
+.editor-toolbar { padding: 12px 28px; border-bottom: 1px solid var(--border); background: var(--surface); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tool-btn { padding: 6px 10px; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--ink2); transition: all 0.15s; min-width: 32px; }
+.tool-btn:hover { background: var(--bg); color: var(--ink); }
+.tool-btn.active { background: var(--accent-lt); color: var(--accent); }
+.tool-sep { width: 1px; height: 24px; background: var(--border); margin: 0 6px; }
+
+.editor-area { flex: 1; display: grid; grid-template-columns: 1fr 1fr; }
+.editor-pane { padding: 32px; overflow-y: auto; }
+.editor-pane.preview { border-left: 1px solid var(--border); background: var(--surface); }
+
+.meta-input { width: 100%; border: none; outline: none; font-family: 'Lora', serif; background: transparent; color: var(--ink); }
+.title-input { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 8px; line-height: 1.2; }
+.title-input::placeholder { color: var(--ink3); }
+.subtitle-input { font-size: 16px; color: var(--ink2); margin-bottom: 24px; font-style: italic; }
+.subtitle-input::placeholder { color: var(--ink3); }
+.tags-input { width: 100%; border: none; border-bottom: 1px solid var(--border); outline: none; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12px; color: var(--ink2); padding: 8px 0; margin-bottom: 24px; background: transparent; }
+.editor-content { width: 100%; border: none; outline: none; font-family: 'Lora', serif; font-size: 17px; line-height: 1.8; color: var(--ink); resize: none; min-height: 400px; background: transparent; }
+.editor-content::placeholder { color: var(--ink3); }
+
+/* PREVIEW */
+.preview-title { font-family: 'Lora', serif; font-size: 28px; font-weight: 700; line-height: 1.3; letter-spacing: -0.02em; margin-bottom: 8px; }
+.preview-subtitle { font-family: 'Lora', serif; font-size: 16px; color: var(--ink2); font-style: italic; margin-bottom: 20px; }
+.preview-meta { font-size: 12px; color: var(--ink3); margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+.preview-body { font-family: 'Lora', serif; font-size: 17px; line-height: 1.85; color: var(--ink); white-space: pre-wrap; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(28,25,23,0.5); backdrop-filter: blur(4px); z-index: 200; display: none; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 16px; width: 500px; max-width: 95vw; padding: 28px; box-shadow: 0 24px 48px rgba(28,25,23,0.15); animation: modal-in 0.2s ease; }
+@keyframes modal-in { from { transform: translateY(12px); opacity: 0; } }
+.modal h3 { font-family: 'Lora', serif; font-size: 20px; font-weight: 600; margin-bottom: 20px; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--ink2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+.form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.15s; }
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group textarea { resize: none; height: 80px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 80px 24px; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--ink2); margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="quill-icon">✒️</div>
+      <div class="sidebar-logo-text"><span>Quill</span> CMS</div>
+    </div>
+    <div class="sidebar-section-label">Content</div>
+    <div class="nav-item active" onclick="showPosts()">📝 All Posts <span class="nav-badge" id="nav-count">0</span></div>
+    <div class="nav-item" onclick="showEditor()">✏️ Write New</div>
+    <div class="nav-item">📂 Drafts</div>
+    <div class="nav-item">🗂 Categories</div>
+    <div class="sidebar-section-label">Manage</div>
+    <div class="nav-item">🖼 Media</div>
+    <div class="nav-item">💬 Comments</div>
+    <div class="nav-item">👥 Authors</div>
+    <div class="sidebar-section-label">Settings</div>
+    <div class="nav-item">⚙️ Site Settings</div>
+    <div class="nav-item">🎨 Themes</div>
+    <div class="sidebar-footer">
+      <div class="avatar-sm">AI</div>
+      <div class="sidebar-user"><strong>Adams Ibraheem</strong>Admin</div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <!-- POSTS VIEW -->
+    <div id="posts-view">
+      <div class="topbar">
+        <div class="view-title">All Posts</div>
+        <div class="topbar-actions">
+          <input class="search-input" placeholder="Search posts..." oninput="filterPosts(this.value)">
+          <button class="btn btn-ghost">Filter</button>
+          <button class="btn btn-accent" onclick="showEditor()">+ Write New</button>
+        </div>
+      </div>
+      <div class="stats-bar">
+        <div class="stat-tab active" onclick="filterByStatus('all',this)"><div class="stat-num" id="stat-all">0</div><div class="stat-label">All Posts</div></div>
+        <div class="stat-tab" onclick="filterByStatus('published',this)"><div class="stat-num" id="stat-pub">0</div><div class="stat-label">Published</div></div>
+        <div class="stat-tab" onclick="filterByStatus('draft',this)"><div class="stat-num" id="stat-draft">0</div><div class="stat-label">Drafts</div></div>
+        <div class="stat-tab"><div class="stat-num" id="stat-views">0</div><div class="stat-label">Total Views</div></div>
+      </div>
+      <div class="posts-area">
+        <div class="posts-grid" id="posts-grid"></div>
+      </div>
+    </div>
+
+    <!-- EDITOR VIEW -->
+    <div class="editor-view" id="editor-view">
+      <div class="topbar">
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" onclick="showPosts()">← Back</button>
+          <div class="view-title" style="margin:0 12px">New Post</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost" onclick="saveDraft()">Save Draft</button>
+          <button class="btn btn-accent" onclick="publishPost()">Publish →</button>
+        </div>
+      </div>
+      <div class="editor-toolbar">
+        <button class="tool-btn" onclick="fmt('**','**')"><b>B</b></button>
+        <button class="tool-btn" onclick="fmt('_','_')"><i>I</i></button>
+        <button class="tool-btn" onclick="fmt('~~','~~')"><s>S</s></button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" onclick="fmt('# ','')">H1</button>
+        <button class="tool-btn" onclick="fmt('## ','')">H2</button>
+        <button class="tool-btn" onclick="fmt('### ','')">H3</button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" onclick="fmt('> ','')">❝</button>
+        <button class="tool-btn" onclick="fmt('- ','')">≡</button>
+        <button class="tool-btn" onclick="fmt('```\n','```')">{ }</button>
+        <div class="tool-sep"></div>
+        <button class="tool-btn" onclick="fmt('[','](url)')">🔗</button>
+        <button class="tool-btn">🖼</button>
+      </div>
+      <div class="editor-area">
+        <div class="editor-pane">
+          <input class="meta-input title-input" id="e-title" placeholder="Post title..." oninput="updatePreview()">
+          <input class="meta-input subtitle-input" id="e-subtitle" placeholder="Add a subtitle..." oninput="updatePreview()">
+          <input class="tags-input" id="e-tags" placeholder="Add tags: tech, design, coding...">
+          <textarea class="editor-content" id="e-content" placeholder="Write your story..." oninput="updatePreview()"></textarea>
+        </div>
+        <div class="editor-pane preview" id="preview-pane">
+          <div class="preview-title" id="p-title">Your title will appear here</div>
+          <div class="preview-subtitle" id="p-subtitle"></div>
+          <div class="preview-meta">Adams Ibraheem · Just now · 0 min read</div>
+          <div class="preview-body" id="p-body">Start writing to see a preview...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL (view post) -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3 id="modal-title">Post Title</h3>
+    <p style="font-size:13px;color:var(--ink2);margin-bottom:16px" id="modal-meta"></p>
+    <p style="font-size:14px;line-height:1.7;color:var(--ink);font-family:'Lora',serif" id="modal-content"></p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="document.getElementById('modal').classList.remove('open')">Close</button>
+      <button class="btn btn-accent" onclick="editPost()">Edit Post</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COVERS = [
+  { bg:'linear-gradient(135deg,#667eea,#764ba2)', emoji:'🚀' },
+  { bg:'linear-gradient(135deg,#f093fb,#f5576c)', emoji:'💡' },
+  { bg:'linear-gradient(135deg,#4facfe,#00f2fe)', emoji:'⚙️' },
+  { bg:'linear-gradient(135deg,#43e97b,#38f9d7)', emoji:'🌿' },
+  { bg:'linear-gradient(135deg,#fa709a,#fee140)', emoji:'✨' },
+  { bg:'linear-gradient(135deg,#a18cd1,#fbc2eb)', emoji:'🎨' },
+  { bg:'linear-gradient(135deg,#fda085,#f6d365)', emoji:'📊' },
+];
+
+let posts = JSON.parse(localStorage.getItem('quill-posts') || '[]');
+let statusFilter = 'all';
+let viewingPost = null;
+
+if (posts.length === 0) {
+  posts = [
+    { id:1, title:'Getting Started with React Hooks', subtitle:'A practical guide to useState, useEffect and custom hooks', content:'React Hooks revolutionised the way we write React components. In this post, we explore the most commonly used hooks and how to build your own custom hooks for reusable logic.\n\nHooks allow functional components to use state and lifecycle features that were previously only available in class components...', tags:['React','JavaScript','Frontend'], status:'published', date:'2025-05-15', views:1284, cover:0 },
+    { id:2, title:'Building REST APIs with Node.js and Express', subtitle:'From zero to production-ready API in under an hour', content:'Node.js combined with Express.js is one of the most popular stacks for building REST APIs. In this tutorial, we build a complete API with authentication, validation, and error handling.\n\nWe start with a basic Express server and progressively add features including JWT authentication...', tags:['Node.js','API','Backend'], status:'published', date:'2025-05-22', views:876, cover:2 },
+    { id:3, title:'PostgreSQL Performance Tuning Tips', subtitle:'Speed up your database queries with these practical techniques', content:'Database performance is critical for any production application. In this post, we cover indexing strategies, query optimisation, and connection pooling to dramatically improve your PostgreSQL performance.\n\nStarting with EXPLAIN ANALYZE to understand query plans...', tags:['Database','PostgreSQL','Performance'], status:'published', date:'2025-06-01', views:642, cover:6 },
+    { id:4, title:'Deploying to AWS with Docker and ECS', subtitle:'A step-by-step guide to containerised deployments on AWS', content:'AWS Elastic Container Service (ECS) makes it easy to run, stop, and manage Docker containers on a cluster. This guide walks through everything from building your Docker image to running it in production on AWS.\n\nFirst, we set up our Dockerfile and build our image...', tags:['AWS','Docker','DevOps'], status:'published', date:'2025-06-08', views:523, cover:3 },
+    { id:5, title:'TypeScript Best Practices in 2025', subtitle:'Write safer, more maintainable TypeScript code', content:'TypeScript has become the standard for large-scale JavaScript applications. In this post, we explore the best practices that will make your TypeScript code more robust and maintainable.\n\nFrom strict mode configurations to utility types...', tags:['TypeScript','JavaScript'], status:'draft', date:'2025-06-10', views:0, cover:1 },
+    { id:6, title:'Introduction to System Design', subtitle:'How to think about scalability, reliability and performance', content:'System design interviews are notoriously challenging, but more importantly, understanding system design principles is essential for building real-world applications that scale.\n\nIn this post, we cover the fundamentals: load balancing, caching, database sharding...', tags:['System Design','Architecture'], status:'draft', date:'2025-06-12', views:0, cover:4 },
+  ];
+  save();
+}
+
+function save() { localStorage.setItem('quill-posts', JSON.stringify(posts)); }
+
+function renderPosts(list = posts) {
+  const filtered = statusFilter === 'all' ? list : list.filter(p => p.status === statusFilter);
+  const grid = document.getElementById('posts-grid');
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📝</div><div class="empty-title">No posts yet</div><div class="empty-sub">Start writing your first post</div><button class="btn btn-accent" onclick="showEditor()">Write New Post</button></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(p => {
+    const c = COVERS[p.cover % COVERS.length];
+    return `<div class="post-card" onclick="viewPost(${p.id})">
+      <div class="post-cover" style="background:${c.bg}">
+        <div class="post-cover-overlay" style="background:rgba(0,0,0,0.1)"></div>
+        <span>${c.emoji}</span>
+        <span class="cover-status status-${p.status}">${p.status}</span>
+      </div>
+      <div class="post-body">
+        <div class="post-tags">${p.tags.map(t => `<span class="post-tag">${t}</span>`).join('')}</div>
+        <div class="post-title">${p.title}</div>
+        <div class="post-excerpt">${p.subtitle}</div>
+        <div class="post-meta">
+          <div class="post-meta-left">📅 ${p.date}</div>
+          <div class="post-stats">
+            <div class="post-stat">👁 ${p.views.toLocaleString()}</div>
+            <div class="post-stat">⏱ ${Math.ceil(p.content.length / 800)} min</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const pub = posts.filter(p=>p.status==='published').length;
+  const drft = posts.filter(p=>p.status==='draft').length;
+  const views = posts.reduce((s,p)=>s+p.views,0);
+  document.getElementById('stat-all').textContent = posts.length;
+  document.getElementById('stat-pub').textContent = pub;
+  document.getElementById('stat-draft').textContent = drft;
+  document.getElementById('stat-views').textContent = views.toLocaleString();
+  document.getElementById('nav-count').textContent = posts.length;
+}
+
+function filterByStatus(status, btn) {
+  statusFilter = status;
+  document.querySelectorAll('.stat-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderPosts();
+}
+
+function filterPosts(query) {
+  const q = query.toLowerCase();
+  const filtered = posts.filter(p => p.title.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q)));
+  renderPosts(filtered);
+}
+
+function viewPost(id) {
+  viewingPost = id;
+  const p = posts.find(p => p.id === id);
+  document.getElementById('modal-title').textContent = p.title;
+  document.getElementById('modal-meta').textContent = `${p.tags.join(', ')} · ${p.date} · ${p.views} views`;
+  document.getElementById('modal-content').textContent = p.content.slice(0, 300) + '...';
+  document.getElementById('modal').classList.add('open');
+}
+
+function editPost() { document.getElementById('modal').classList.remove('open'); showEditor(); }
+
+function showEditor(id = null) {
+  document.getElementById('posts-view').style.display = 'none';
+  document.getElementById('editor-view').style.display = 'flex';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+}
+
+function showPosts() {
+  document.getElementById('posts-view').style.display = 'block';
+  document.getElementById('editor-view').style.display = 'none';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[0].classList.add('active');
+  renderPosts();
+}
+
+function updatePreview() {
+  const title = document.getElementById('e-title').value || 'Your title will appear here';
+  const subtitle = document.getElementById('e-subtitle').value;
+  const body = document.getElementById('e-content').value || 'Start writing to see a preview...';
+  document.getElementById('p-title').textContent = title;
+  document.getElementById('p-subtitle').textContent = subtitle;
+  document.getElementById('p-body').textContent = body;
+}
+
+function fmt(before, after) {
+  const ta = document.getElementById('e-content');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  const sel = ta.value.slice(s, e);
+  ta.value = ta.value.slice(0, s) + before + sel + after + ta.value.slice(e);
+  ta.focus();
+  updatePreview();
+}
+
+function saveDraft() {
+  const title = document.getElementById('e-title').value.trim();
+  if (!title) { alert('Please add a title'); return; }
+  const tags = document.getElementById('e-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  posts.unshift({ id: Date.now(), title, subtitle: document.getElementById('e-subtitle').value, content: document.getElementById('e-content').value, tags: tags.length ? tags : ['Uncategorised'], status: 'draft', date: new Date().toISOString().slice(0,10), views: 0, cover: Math.floor(Math.random()*COVERS.length) });
+  save(); clearEditor(); showPosts();
+}
+
+function publishPost() {
+  const title = document.getElementById('e-title').value.trim();
+  if (!title) { alert('Please add a title'); return; }
+  const tags = document.getElementById('e-tags').value.split(',').map(t => t.trim()).filter(Boolean);
+  posts.unshift({ id: Date.now(), title, subtitle: document.getElementById('e-subtitle').value, content: document.getElementById('e-content').value, tags: tags.length ? tags : ['Uncategorised'], status: 'published', date: new Date().toISOString().slice(0,10), views: 0, cover: Math.floor(Math.random()*COVERS.length) });
+  save(); clearEditor(); showPosts();
+}
+
+function clearEditor() {
+  ['e-title','e-subtitle','e-tags','e-content'].forEach(id => document.getElementById(id).value = '');
+  updatePreview();
+}
+
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') e.target.classList.remove('open'); });
+renderPosts();
+</script>
+</body>
+</html>
