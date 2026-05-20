@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AuthFlow — Login & Register</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0a0d14;
+  --panel:    #111520;
+  --panel2:   #161b28;
+  --card:     #1a2035;
+  --indigo:   #5c6bc0;
+  --indigo2:  #3f51b5;
+  --cyan:     #00bcd4;
+  --cyan-glow:rgba(0,188,212,0.12);
+  --green:    #4caf50;
+  --green-dim:rgba(76,175,80,0.12);
+  --red:      #ef4444;
+  --orange:   #ff9800;
+  --offwhite: #e8eaf0;
+  --muted:    #5a6478;
+  --muted2:   #3a4060;
+  --rule:     #1e2336;
+  --font-mono:'JetBrains Mono', monospace;
+  --font-sans:'Syne', sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--offwhite);min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(var(--rule) 1px,transparent 1px),linear-gradient(90deg,var(--rule) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;opacity:.35}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.18;pointer-events:none;z-index:0;animation:drift 14s ease-in-out infinite}
+.orb1{width:500px;height:500px;background:#3b82f6;top:-150px;right:-150px}
+.orb2{width:350px;height:350px;background:#818cf8;bottom:-100px;left:-100px;animation-delay:-7s}
+@keyframes drift{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-30px) scale(1.06)}}
+.page{position:relative;z-index:1;min-height:100vh;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.page.active{display:flex}
+.auth-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--rule);border-radius:16px;padding:40px 36px;box-shadow:0 32px 64px rgba(0,0,0,.4);animation:card-in .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes card-in{from{opacity:0;transform:translateY(32px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.auth-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center}
+.logo-mark{width:36px;height:36px;background:var(--cyan);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;font-size:14px;color:var(--bg)}
+.logo-text{font-family:var(--font-mono);font-size:16px;font-weight:600;color:var(--offwhite);letter-spacing:.05em}
+.logo-text span{color:var(--cyan)}
+.auth-title{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;text-align:center}
+.auth-subtitle{font-family:var(--font-mono);font-size:11px;color:var(--muted);text-align:center;margin-bottom:32px;letter-spacing:.08em}
+.form-group{margin-bottom:18px;position:relative}
+.form-group label{display:block;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px}
+.input-wrap{position:relative}
+.input-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--muted);pointer-events:none;transition:color .2s}
+.form-group input{width:100%;background:var(--panel2);border:1px solid var(--rule);border-radius:10px;padding:12px 14px 12px 42px;font-family:var(--font-mono);font-size:13px;color:var(--offwhite);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.form-group input::placeholder{color:var(--muted2)}
+.form-group input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow);background:var(--panel)}
+.form-group.valid input{border-color:var(--green)}
+.form-group.invalid input{border-color:var(--red)}
+.pwd-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:14px;padding:2px;transition:color .2s}
+.pwd-toggle:hover{color:var(--cyan)}
+.field-msg{font-family:var(--font-mono);font-size:10px;margin-top:6px;padding-left:4px;height:14px;transition:opacity .2s}
+.field-msg.err{color:var(--red)}
+.field-msg.ok{color:var(--green)}
+.strength-bar{display:flex;gap:4px;margin-top:8px}
+.strength-seg{flex:1;height:3px;border-radius:2px;background:var(--rule);transition:background .3s}
+.btn-submit{width:100%;margin-top:8px;padding:14px;background:var(--cyan);color:var(--bg);font-family:var(--font-mono);font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;border:none;border-radius:10px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.btn-submit:hover:not(:disabled){background:#00e5ff;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,188,212,.3)}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed}
+.btn-submit .spinner{display:none;width:16px;height:16px;border:2px solid rgba(10,13,20,.3);border-top-color:var(--bg);border-radius:50%;animation:spin .7s linear infinite;position:absolute;right:16px;top:50%;margin-top:-8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn-submit.loading .spinner{display:block}
+.divider{display:flex;align-items:center;gap:12px;margin:20px 0}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--rule)}
+.divider span{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:.1em}
+.oauth-row{display:flex;gap:10px}
+.btn-oauth{flex:1;padding:11px;background:var(--panel2);border:1px solid var(--rule);border-radius:10px;color:var(--offwhite);font-family:var(--font-mono);font-size:11px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s;letter-spacing:.04em}
+.btn-oauth:hover{border-color:var(--indigo);background:var(--panel)}
+.switch-link{text-align:center;margin-top:24px;font-family:var(--font-mono);font-size:11px;color:var(--muted)}
+.switch-link a{color:var(--cyan);text-decoration:none;font-weight:600;transition:color .2s}
+.switch-link a:hover{color:#00e5ff}
+.toast-wrap{position:fixed;top:24px;right:24px;display:flex;flex-direction:column;gap:10px;z-index:999}
+.toast{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:14px 18px;font-family:var(--font-mono);font-size:12px;color:var(--offwhite);display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.4);transform:translateX(110%);transition:transform .35s cubic-bezier(.34,1.56,.64,1);max-width:320px}
+.toast.show{transform:translateX(0)}
+.toast-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toast.success .toast-dot{background:var(--green)}
+.toast.error .toast-dot{background:var(--red)}
+.toast.info .toast-dot{background:var(--cyan)}
+/* DASHBOARD */
+#dashboard-page{align-items:stretch;justify-content:flex-start;padding:0}
+.dash-nav{position:sticky;top:0;z-index:50;background:rgba(10,13,20,.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.dash-nav-logo{font-family:var(--font-mono);font-size:14px;color:var(--offwhite);display:flex;align-items:center;gap:10px}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--rule);border-radius:24px;padding:6px 14px 6px 8px;font-family:var(--font-mono);font-size:12px}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--indigo),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+.btn-logout{background:transparent;border:1px solid var(--rule);color:var(--muted);border-radius:8px;padding:7px 14px;cursor:pointer;font-family:var(--font-mono);font-size:11px;transition:all .2s;letter-spacing:.06em}
+.btn-logout:hover{border-color:var(--red);color:var(--red)}
+.dash-body{padding:36px 32px;flex:1;max-width:1100px;margin:0 auto;width:100%}
+.dash-welcome{margin-bottom:32px}
+.dash-welcome h1{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+.dash-welcome h1 span{color:var(--cyan)}
+.dash-welcome p{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.auth-status{background:var(--green-dim);border:1px solid rgba(76,175,80,.25);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:14px;margin-bottom:28px;font-family:var(--font-mono);font-size:12px}
+.auth-status-dot{width:10px;height:10px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite;flex-shrink:0}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(76,175,80,.4)}50%{box-shadow:0 0 0 6px rgba(76,175,80,0)}}
+.auth-status-text{color:var(--green)}
+.auth-status-detail{color:var(--muted);margin-left:auto}
+.token-card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:22px;margin-bottom:24px}
+.token-card-title{font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.token-card-title::before{content:'';display:block;width:3px;height:12px;background:var(--cyan);border-radius:2px}
+.token-display{background:var(--bg);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;font-family:var(--font-mono);font-size:11px;color:var(--muted);word-break:break-all;line-height:1.6}
+.t-header{color:var(--red)}
+.t-payload{color:var(--cyan)}
+.t-sig{color:var(--orange)}
+.t-dot{color:var(--muted2)}
+.payload-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.payload-item{background:var(--panel2);border:1px solid var(--rule);border-radius:8px;padding:12px 14px}
+.payload-key{font-family:var(--font-mono);font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px}
+.payload-val{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--offwhite)}
+.routes-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.route-card{background:var(--panel2);border:1px solid var(--rule);border-radius:12px;padding:20px;transition:all .2s}
+.route-card:hover{border-color:var(--indigo);transform:translateY(-2px)}
+.route-method{font-family:var(--font-mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block;margin-bottom:10px}
+.method-get{background:rgba(76,175,80,.12);color:var(--green)}
+.method-post{background:rgba(0,188,212,.12);color:var(--cyan)}
+.method-put{background:rgba(255,152,0,.12);color:var(--orange)}
+.route-path{font-family:var(--font-mono);font-size:13px;color:var(--offwhite);margin-bottom:6px;font-weight:600}
+.route-desc{font-size:12px;color:var(--muted);line-height:1.5}
+.route-badge{display:inline-block;margin-top:10px;font-family:var(--font-mono);font-size:9px;padding:2px 8px;border-radius:10px}
+.badge-protected{background:rgba(239,68,68,.1);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.badge-public{background:rgba(76,175,80,.1);color:var(--green);border:1px solid rgba(76,175,80,.2)}
+.users-table{width:100%;border-collapse:collapse;margin-top:4px}
+.users-table th{text-align:left;padding:10px 14px;font-family:var(--font-mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;border-bottom:1px solid var(--rule)}
+.users-table td{padding:12px 14px;font-family:var(--font-mono);font-size:12px;border-bottom:1px solid var(--rule);color:var(--offwhite)}
+.users-table tr:last-child td{border-bottom:none}
+.users-table tr:hover td{background:var(--panel2)}
+.role-badge{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.role-admin{background:rgba(255,152,0,.12);color:var(--orange)}
+.role-user{background:rgba(92,107,192,.12);color:var(--indigo)}
+.status-active{color:var(--green)}
+.status-inactive{color:var(--muted)}
+@media(max-width:700px){
+  .auth-card{padding:28px 20px}
+  .payload-grid{grid-template-columns:1fr 1fr}
+  .routes-grid{grid-template-columns:1fr}
+  .dash-body{padding:24px 16px}
+  .dash-nav{padding:0 16px}
+  .dash-welcome h1{font-size:22px}
+  .auth-status-detail{display:none}
+  .oauth-row{flex-direction:column}
+}
+
+@media (max-width: 900px) {
+  .dash-body { padding: 24px 20px; }
+  .routes-grid { grid-template-columns: repeat(2, 1fr); }
+  .payload-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .auth-card { padding: 24px 16px; }
+  .auth-title { font-size: 20px; }
+  .dash-nav { padding: 0 14px; height: 52px; }
+  .dash-body { padding: 18px 14px; }
+  .dash-welcome h1 { font-size: 20px; }
+  .routes-grid { grid-template-columns: 1fr; }
+  .payload-grid { grid-template-columns: 1fr 1fr; }
+  .auth-status { flex-wrap: wrap; gap: 8px; }
+  .auth-status-detail { margin-left: 0; width: 100%; }
+  .token-display { font-size: 10px; }
+  .users-table th, .users-table td { padding: 8px 10px; font-size: 11px; }
+  .oauth-row { flex-direction: column; }
+  .users-table th:nth-child(4),
+  .users-table td:nth-child(4) { display: none; }
+}
+@media (max-width: 400px) {
+  .payload-grid { grid-template-columns: 1fr; }
+  .users-table th:nth-child(5),
+  .users-table td:nth-child(5) { display: none; }
+}
+
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- LOGIN -->
+<div class="page active" id="login-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="logo-mark">AF</div><div class="logo-text">Auth<span>Flow</span></div></div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-subtitle">// sign in to your account</div>
+    <form id="login-form" novalidate>
+      <div class="form-group" id="lg-email-group">
+        <label>Email address</label>
+        <div class="input-wrap">
+          <input type="email" id="lg-email" placeholder="you@example.com" autocomplete="email">
+          <span class="input-icon">✉</span>
+        </div>
+        <div class="field-msg" id="lg-email-msg"></div>
+      </div>
+      <div class="form-group" id="lg-pwd-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="lg-pwd" placeholder="••••••••" autocomplete="current-password">
+          <span class="input-icon">🔒</span>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('lg-pwd',this)">👁</button>
+        </div>
+        <div class="field-msg" id="lg-pwd-msg"></div>
+      </div>
+      <button type="submit" class="btn-submit" id="lg-btn">Sign In<div class="spinner"></div></button>
+    </form>
+    <div class="divider"><span>or continue with</span></div>
+    <div class="oauth-row">
+      <button class="btn-oauth" onclick="oauthDemo('GitHub')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.8c.85 0 1.71.11 2.51.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
+        GitHub
+      </button>
+      <button class="btn-oauth" onclick="oauthDemo('Google')">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google
+      </button>
+    </div>
+    <div class="switch-link">Don't have an account? <a href="#" onclick="showPage('register')">Create one</a></div>
+  </div>
+</div>
+
+<!-- REGISTER -->
+<div class="page" id="register-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="logo-mark">AF</div><div class="logo-text">Auth<span>Flow</span></div></div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-subtitle">// get started for free</div>
+    <form id="register-form" novalidate>
+      <div class="form-group" id="rg-name-group">
+        <label>Full Name</label>
+        <div class="input-wrap">
+          <input type="text" id="rg-name" placeholder="Adams Ibraheem" autocomplete="name">
+          <span class="input-icon">👤</span>
+        </div>
+        <div class="field-msg" id="rg-name-msg"></div>
+      </div>
+      <div class="form-group" id="rg-email-group">
+        <label>Email address</label>
+        <div class="input-wrap">
+          <input type="email" id="rg-email" placeholder="you@example.com" autocomplete="email">
+          <span class="input-icon">✉</span>
+        </div>
+        <div class="field-msg" id="rg-email-msg"></div>
+      </div>
+      <div class="form-group" id="rg-pwd-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="rg-pwd" placeholder="Min. 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)">
+          <span class="input-icon">🔒</span>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('rg-pwd',this)">👁</button>
+        </div>
+        <div class="strength-bar"><div class="strength-seg" id="s1"></div><div class="strength-seg" id="s2"></div><div class="strength-seg" id="s3"></div><div class="strength-seg" id="s4"></div></div>
+        <div class="field-msg" id="rg-pwd-msg"></div>
+      </div>
+      <div class="form-group" id="rg-confirm-group">
+        <label>Confirm Password</label>
+        <div class="input-wrap">
+          <input type="password" id="rg-confirm" placeholder="Repeat password" autocomplete="new-password">
+          <span class="input-icon">🔑</span>
+          <button type="button" class="pwd-toggle" onclick="togglePwd('rg-confirm',this)">👁</button>
+        </div>
+        <div class="field-msg" id="rg-confirm-msg"></div>
+      </div>
+      <button type="submit" class="btn-submit" id="rg-btn">Create Account<div class="spinner"></div></button>
+    </form>
+    <div class="divider"><span>or sign up with</span></div>
+    <div class="oauth-row">
+      <button class="btn-oauth" onclick="oauthDemo('GitHub')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12c0 4.42 2.87 8.17 6.84 9.5.5.09.66-.22.66-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.46-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.89 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.56 9.56 0 0 1 12 6.8c.85 0 1.71.11 2.51.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.16.58.67.48A10.01 10.01 0 0 0 22 12c0-5.52-4.48-10-10-10z"/></svg>
+        GitHub
+      </button>
+      <button class="btn-oauth" onclick="oauthDemo('Google')">
+        <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Google
+      </button>
+    </div>
+    <div class="switch-link">Already have an account? <a href="#" onclick="showPage('login')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- DASHBOARD (PROTECTED) -->
+<div class="page" id="dashboard-page">
+  <nav class="dash-nav">
+    <div class="dash-nav-logo"><span style="color:var(--cyan)">AF</span><span style="color:var(--muted)">/</span>dashboard</div>
+    <div style="display:flex;align-items:center;gap:16px">
+      <div class="user-chip"><div class="user-avatar" id="dash-avatar">AI</div><span id="dash-username" style="font-size:12px">user</span></div>
+      <button class="btn-logout" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="dash-body">
+    <div class="dash-welcome">
+      <h1>Good to see you, <span id="dash-name">Adams</span> 👋</h1>
+      <p>// You have successfully authenticated. This is a protected route.</p>
+    </div>
+    <div class="auth-status">
+      <div class="auth-status-dot"></div>
+      <div class="auth-status-text">Authenticated · Session active</div>
+      <div class="auth-status-detail" id="session-time">Token expires in 60:00</div>
+    </div>
+    <div class="token-card">
+      <div class="token-card-title">JWT Token (simulated)</div>
+      <div class="token-display">
+        <span class="t-header">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</span><span class="t-dot">.</span><span class="t-payload" id="jwt-payload">eyJ1c2VyIjoiYWRhbXMiLCJyb2xlIjoidXNlciJ9</span><span class="t-dot">.</span><span class="t-sig">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</span>
+      </div>
+      <div class="payload-grid" id="payload-grid"></div>
+    </div>
+    <div class="token-card">
+      <div class="token-card-title">Protected Routes</div>
+      <div class="routes-grid">
+        <div class="route-card"><div class="route-method method-get">GET</div><div class="route-path">/api/dashboard</div><div class="route-desc">Returns current user session data and profile.</div><div class="route-badge badge-protected">🔒 Auth required</div></div>
+        <div class="route-card"><div class="route-method method-get">GET</div><div class="route-path">/api/users/me</div><div class="route-desc">Returns the authenticated user's full profile.</div><div class="route-badge badge-protected">🔒 Auth required</div></div>
+        <div class="route-card"><div class="route-method method-put">PUT</div><div class="route-path">/api/users/me</div><div class="route-desc">Update authenticated user's profile data.</div><div class="route-badge badge-protected">🔒 Auth required</div></div>
+        <div class="route-card"><div class="route-method method-post">POST</div><div class="route-path">/api/auth/login</div><div class="route-desc">Authenticate and receive a signed JWT token.</div><div class="route-badge badge-public">🌐 Public</div></div>
+        <div class="route-card"><div class="route-method method-post">POST</div><div class="route-path">/api/auth/register</div><div class="route-desc">Create a new account with hashed password.</div><div class="route-badge badge-public">🌐 Public</div></div>
+        <div class="route-card"><div class="route-method method-post">POST</div><div class="route-path">/api/auth/logout</div><div class="route-desc">Invalidate the session and clear the token.</div><div class="route-badge badge-protected">🔒 Auth required</div></div>
+      </div>
+    </div>
+    <div class="token-card">
+      <div class="token-card-title">Registered Users</div>
+      <table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th></tr></thead><tbody id="users-tbody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+const USERS_KEY='authflow_users',SESSION_KEY='authflow_session';
+function getUsers(){return JSON.parse(localStorage.getItem(USERS_KEY)||'[]')}
+function saveUsers(u){localStorage.setItem(USERS_KEY,JSON.stringify(u))}
+if(!getUsers().length){saveUsers([{id:1,name:'Adams Ibraheem',email:'hybeekraft@gmail.com',password:hashPassword('password123'),role:'admin',status:'active',joined:new Date().toISOString().slice(0,10)}])}
+function hashPassword(pwd){let h=0;for(let i=0;i<pwd.length;i++){h=(h<<5)-h+pwd.charCodeAt(i);h|=0}return`$demo$${Math.abs(h).toString(36)}`}
+function createToken(user){const h=btoa(JSON.stringify({alg:'HS256',typ:'JWT'})).replace(/=/g,'');const p=btoa(JSON.stringify({sub:user.id,name:user.name,email:user.email,role:user.role,iat:Math.floor(Date.now()/1000),exp:Math.floor(Date.now()/1000)+3600})).replace(/=/g,'');const s=btoa(`sig_${user.id}_${Date.now()}`).replace(/=/g,'');return`${h}.${p}.${s}`}
+function decodeToken(token){try{return JSON.parse(atob(token.split('.')[1]))}catch{return null}}
+function getSession(){return JSON.parse(sessionStorage.getItem(SESSION_KEY)||'null')}
+function setSession(user,token){sessionStorage.setItem(SESSION_KEY,JSON.stringify({user,token,loginTime:Date.now()}))}
+function clearSession(){sessionStorage.removeItem(SESSION_KEY)}
+function requireAuth(){const s=getSession();if(!s){showPage('login');showToast('Please sign in to access this page','error');return false}return true}
+function showPage(name){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));const el=document.getElementById(`${name}-page`);if(el)el.classList.add('active');if(name==='dashboard'){if(!requireAuth())return;loadDashboard()}}
+let timerInterval;
+function loadDashboard(){const s=getSession();if(!s)return;const decoded=decodeToken(s.token);document.getElementById('dash-name').textContent=s.user.name.split(' ')[0];document.getElementById('dash-username').textContent=s.user.email;document.getElementById('dash-avatar').textContent=s.user.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);document.getElementById('jwt-payload').textContent=s.token.split('.')[1];if(decoded){const pg=document.getElementById('payload-grid');pg.innerHTML=[{k:'sub (user id)',v:decoded.sub},{k:'name',v:decoded.name},{k:'role',v:decoded.role},{k:'iat',v:new Date(decoded.iat*1000).toLocaleTimeString()},{k:'exp',v:new Date(decoded.exp*1000).toLocaleTimeString()},{k:'email',v:decoded.email}].map(({k,v})=>`<div class="payload-item"><div class="payload-key">${k}</div><div class="payload-val">${v}</div></div>`).join('')}clearInterval(timerInterval);timerInterval=setInterval(()=>{if(!decoded)return;const remaining=decoded.exp-Math.floor(Date.now()/1000);if(remaining<=0){logout();return}const m=String(Math.floor(remaining/60)).padStart(2,'0');const s2=String(remaining%60).padStart(2,'0');document.getElementById('session-time').textContent=`Token expires in ${m}:${s2}`},1000);renderUsersTable()}
+function renderUsersTable(){const users=getUsers();document.getElementById('users-tbody').innerHTML=users.map(u=>`<tr><td>${u.name}</td><td>${u.email}</td><td><span class="role-badge role-${u.role}">${u.role}</span></td><td><span class="status-${u.status}">${u.status==='active'?'● Active':'○ Inactive'}</span></td><td>${u.joined}</td></tr>`).join('')||'<tr><td colspan="5" style="color:var(--muted);text-align:center">No users yet</td></tr>'}
+document.getElementById('login-form').addEventListener('submit',async e=>{e.preventDefault();const email=document.getElementById('lg-email').value.trim();const pwd=document.getElementById('lg-pwd').value;let valid=true;if(!validateEmail(email)){setFieldState('lg-email-group','invalid','lg-email-msg','Enter a valid email address','err');valid=false}else setFieldState('lg-email-group','valid','lg-email-msg','','');if(pwd.length<1){setFieldState('lg-pwd-group','invalid','lg-pwd-msg','Password is required','err');valid=false}else setFieldState('lg-pwd-group','valid','lg-pwd-msg','','');if(!valid)return;const btn=document.getElementById('lg-btn');setLoading(btn,true);await delay(1200);const users=getUsers();const user=users.find(u=>u.email===email&&u.password===hashPassword(pwd));setLoading(btn,false);if(!user){setFieldState('lg-pwd-group','invalid','lg-pwd-msg','Invalid email or password','err');showToast('Invalid credentials','error');return}const token=createToken(user);setSession(user,token);showToast(`Welcome back, ${user.name.split(' ')[0]}!`,'success');await delay(400);showPage('dashboard')});
+document.getElementById('register-form').addEventListener('submit',async e=>{e.preventDefault();const name=document.getElementById('rg-name').value.trim();const email=document.getElementById('rg-email').value.trim();const pwd=document.getElementById('rg-pwd').value;const confirm=document.getElementById('rg-confirm').value;let valid=true;if(name.length<2){setFieldState('rg-name-group','invalid','rg-name-msg','Enter your full name','err');valid=false}else setFieldState('rg-name-group','valid','rg-name-msg','','');if(!validateEmail(email)){setFieldState('rg-email-group','invalid','rg-email-msg','Enter a valid email address','err');valid=false}else setFieldState('rg-email-group','valid','rg-email-msg','','');const strength=getStrength(pwd);if(pwd.length<8){setFieldState('rg-pwd-group','invalid','rg-pwd-msg','Password must be at least 8 characters','err');valid=false}else if(strength<2){setFieldState('rg-pwd-group','invalid','rg-pwd-msg','Password is too weak','err');valid=false}else setFieldState('rg-pwd-group','valid','rg-pwd-msg','Strong password ✓','ok');if(pwd!==confirm){setFieldState('rg-confirm-group','invalid','rg-confirm-msg','Passwords do not match','err');valid=false}else if(confirm)setFieldState('rg-confirm-group','valid','rg-confirm-msg','Passwords match ✓','ok');if(!valid)return;const btn=document.getElementById('rg-btn');setLoading(btn,true);await delay(1400);const users=getUsers();if(users.find(u=>u.email===email)){setLoading(btn,false);setFieldState('rg-email-group','invalid','rg-email-msg','An account with this email already exists','err');showToast('Email already registered','error');return}const newUser={id:Date.now(),name,email,password:hashPassword(pwd),role:'user',status:'active',joined:new Date().toISOString().slice(0,10)};users.push(newUser);saveUsers(users);const token=createToken(newUser);setSession(newUser,token);setLoading(btn,false);showToast(`Account created! Welcome, ${name.split(' ')[0]}!`,'success');await delay(400);showPage('dashboard')});
+function logout(){clearInterval(timerInterval);clearSession();showToast('Signed out successfully','info');showPage('login')}
+function validateEmail(e){return/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)}
+function delay(ms){return new Promise(r=>setTimeout(r,ms))}
+function setFieldState(gid,state,mid,msg,mc){const g=document.getElementById(gid);g.classList.remove('valid','invalid');if(state)g.classList.add(state);const m=document.getElementById(mid);m.textContent=msg;m.className=`field-msg ${mc}`}
+function setLoading(btn,loading){btn.disabled=loading;btn.classList.toggle('loading',loading)}
+function togglePwd(id,btn){const input=document.getElementById(id);input.type=input.type==='password'?'text':'password';btn.textContent=input.type==='password'?'👁':'🙈'}
+function getStrength(pwd){let s=0;if(pwd.length>=8)s++;if(pwd.length>=12)s++;if(/[A-Z]/.test(pwd))s++;if(/[0-9]/.test(pwd))s++;if(/[^A-Za-z0-9]/.test(pwd))s++;return Math.min(4,s)}
+function checkStrength(pwd){const s=getStrength(pwd);const colors=['','#ef4444','#f97316','#eab308','#22c55e'];const labels=['','Weak','Fair','Good','Strong'];for(let i=1;i<=4;i++)document.getElementById(`s${i}`).style.background=i<=s?colors[s]:'var(--rule)';if(pwd.length>0){const m=document.getElementById('rg-pwd-msg');m.textContent=labels[s]||'';m.className=`field-msg ${s>=3?'ok':'err'}`}}
+function showToast(msg,type='info'){const wrap=document.getElementById('toast-wrap');const t=document.createElement('div');t.className=`toast ${type}`;t.innerHTML=`<div class="toast-dot"></div><span>${msg}</span>`;wrap.appendChild(t);requestAnimationFrame(()=>{requestAnimationFrame(()=>t.classList.add('show'))});setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),400)},3500)}
+function oauthDemo(p){showToast(`${p} OAuth — connect a real provider in production`,'info')}
+(function boot(){const s=getSession();if(s&&decodeToken(s.token)?.exp>Date.now()/1000)showPage('dashboard');else{clearSession();showPage('login')}})();
+</script>
+</body>
+</html>
